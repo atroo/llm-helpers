@@ -22,6 +22,11 @@ poetry install --with dev
 pip install -e .
 ```
 
+
+### Install the library
+
+- currently only via ssh: `poetry add git+ssh://git@github.com/atroo/llm-helpers.git`
+
 ## Usage
 
 ### File Upload Conversion
