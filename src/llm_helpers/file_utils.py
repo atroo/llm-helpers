@@ -48,7 +48,7 @@ async def file_to_message(file: UploadFile, model_provider: str) -> dict:
             return {
                     "type": "file",
                     "source_type": "base64",
-                    "mime_type": "application/pdf",
+                    "mime_type": f"{file.content_type}",
                     "data": content_b64,
                 }
         case _:
