@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "llm-helpers"
-version = "0.1.4"
+version = "0.1.5"
 description = "A library with functions for interacting with various LLMs"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
