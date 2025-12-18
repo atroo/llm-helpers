@@ -1,7 +1,7 @@
 """LLM Helpers - A library for interacting with various LLM providers."""
 
-from llm_helpers.file_utils import file_to_message
-from llm_helpers.get_llm import get_llm, MODEL_PROVIDERS
+from .file_utils import file_to_message
+from .get_llm import get_llm, MODEL_PROVIDERS
 
 __version__ = "0.1.0"
 

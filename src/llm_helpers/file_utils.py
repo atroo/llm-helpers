@@ -40,13 +40,16 @@ async def file_to_message(file: UploadFile, model_provider: str) -> dict:
             }
         case "groq":
             raise NotImplementedError("File upload not supported for Groq models yet.")
-            # return {
-            #     "type": "document",
-            #     "filename": file.filename,
-            #     "document": {
-            #         "data": {}  # f"data:{file.content_type};base64,{content_b64}",
-            #     },
-            # }
-
+        case "mistralai":
+            raise NotImplementedError("File upload not supported for MistralAI models yet.")
+        
+        # https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai#multimodal-usage
+        case "google":
+            return {
+                    "type": "file",
+                    "source_type": "base64",
+                    "mime_type": "application/pdf",
+                    "data": content_b64,
+                }
         case _:
             raise ValueError(f"Unsupported model provider: {model_provider}")

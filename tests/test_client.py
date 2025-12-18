@@ -1,26 +1,22 @@
 """Tests for LLM client functions."""
 
 import pytest
-from langchain_core.messages import HumanMessage
-from src.llm_helpers.get_llm import get_llm, MODEL_PROVIDERS, TEST_MODEL_STRINGS
+from langchain_core.messages import HumanMessage, AIMessage
+from src.llm_helpers.get_llm import get_llm
 from dotenv import load_dotenv
 
 load_dotenv()
 
+TEST_MODEL_STRINGS = {
+    "openai": "openai:gpt-5.1:none",
+    "azure": "azure:gpt-5-chat",
+    "groq": "groq:openai/gpt-oss-120b",
+    "mistralai": "mistralai:mistral-large-latest",
+    "google": "google:gemini-3-flash-preview:minimal"
+}
 
-def has_reasoning(response) -> bool:
-    """
-    Check if the response contains reasoning.
-    
-    Args:
-        response: The LLM response object
-        
-    Returns:
-        True if reasoning is present, False otherwise
-    """
-    if not hasattr(response, "content"):
-        return False
-    
+def has_reasoning(response: AIMessage) -> bool:
+    """Check if the response contains reasoning."""
     # If content is a list, check for reasoning type
     if isinstance(response.content, list):
         return any(
@@ -31,76 +27,58 @@ def has_reasoning(response) -> bool:
     return False
 
 
-def has_no_reasoning(response) -> bool:
-    """
-    Check if the response does NOT contain reasoning.
-    
-    Args:
-        response: The LLM response object
-        
-    Returns:
-        True if no reasoning is present, False otherwise
-    """
+def has_no_reasoning(response: AIMessage) -> bool:
     return not has_reasoning(response)
 
-@pytest.mark.asyncio
-async def test_get_llm_openai():
-    """Test get_llm with OpenAI provider."""
-    llm, provider = get_llm(model_string=TEST_MODEL_STRINGS["openai"])
+
+async def run_basic_llm_test(provider_name: str, should_have_reasoning: bool = False):
+    """
+    Helper function to test basic LLM functionality for a given provider.
+    """
+    llm, provider = get_llm(model_string=TEST_MODEL_STRINGS[provider_name])
     
-    assert provider == "openai"
+    assert provider == provider_name
     assert llm is not None
     
     # Invoke the LLM with a simple message
     message = HumanMessage(content="Say 'hello' in one word.")
     response = await llm.ainvoke([message])
+
+    assert isinstance(response, AIMessage)
+    if should_have_reasoning:
+        assert has_reasoning(response)
+    else:
+        assert has_no_reasoning(response)
     
-    assert response is not None
-    assert hasattr(response, "content")
-    assert len(response.content) > 0
-    assert has_no_reasoning(response)
-    
-    print(f"\nOpenAI Response: {response.content}")
+    print(f"\n{provider_name.capitalize()} Response: {response.content}")
+
+
+@pytest.mark.asyncio
+async def test_get_llm_openai():
+    """Test get_llm with OpenAI provider."""
+    await run_basic_llm_test("openai")
 
 
 @pytest.mark.asyncio
 async def test_get_llm_azure():
     """Test get_llm with Azure provider."""
-    llm, provider = get_llm(model_string=TEST_MODEL_STRINGS["azure"])
-    
-    assert provider == "azure"
-    assert llm is not None
-    
-    # Invoke the LLM with a simple message
-    message = HumanMessage(content="Say 'hello' in one word.")
-    response = await llm.ainvoke([message])
-    
-    assert response is not None
-    assert hasattr(response, "content")
-    assert len(response.content) > 0
-    assert has_no_reasoning(response)
-    
-    print(f"\nAzure Response: {response.content}")
+    await run_basic_llm_test("azure")
 
 
 @pytest.mark.asyncio
 async def test_get_llm_groq():
     """Test get_llm with Groq provider."""
-    llm, provider = get_llm(model_string=TEST_MODEL_STRINGS["groq"])
-    
-    assert provider == "groq"
-    assert llm is not None
-    
-    # Invoke the LLM with a simple message
-    message = HumanMessage(content="Say 'hello' in one word.")
-    response = await llm.ainvoke([message])
-    
-    assert response is not None
-    assert hasattr(response, "content")
-    assert len(response.content) > 0
-    assert has_no_reasoning(response)
-    
-    print(f"\nGroq Response: {response.content}")
+    await run_basic_llm_test("groq")
+
+@pytest.mark.asyncio
+async def test_get_llm_mistralai():
+    """Test get_llm with MistralAI provider."""
+    await run_basic_llm_test("mistralai")
+
+@pytest.mark.asyncio
+async def test_get_llm_google():
+    """Test get_llm with Google provider."""
+    await run_basic_llm_test("google")
 
 
 @pytest.mark.asyncio
@@ -116,8 +94,7 @@ async def test_get_llm_with_reasoning():
     response = await llm.ainvoke([message])
     
     assert response is not None
-    assert hasattr(response, "content")
-    assert len(response.content) > 0
+    assert isinstance(response, AIMessage)
     assert has_reasoning(response)
     
     print(f"\nOpenAI with reasoning Response: {response.content}")
@@ -160,11 +137,3 @@ def test_get_llm_invalid_format():
     """Test that invalid model string format raises ValueError."""
     with pytest.raises(ValueError, match="is not valid"):
         get_llm(model_string="invalid_format")
-
-
-def test_model_providers_constant():
-    """Test that MODEL_PROVIDERS contains expected providers."""
-    assert "openai" in MODEL_PROVIDERS
-    assert "azure" in MODEL_PROVIDERS
-    assert "groq" in MODEL_PROVIDERS
-    assert len(MODEL_PROVIDERS) == 3

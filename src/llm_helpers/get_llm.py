@@ -1,12 +1,12 @@
 """Factory functions for creating LLM client instances."""
 
 import os
+from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 
-
-MODEL_PROVIDERS = ["openai", "azure", "groq"]
-TEST_MODEL_STRINGS = {'openai':'openai:gpt-5.1:none', 'azure':'azure:gpt-5-chat', 'groq':'groq:openai/gpt-oss-120b'}
+MODEL_PROVIDERS = ["openai", "azure", "groq", "mistralai", "google"]
 
 
 def get_llm(
@@ -16,18 +16,18 @@ def get_llm(
 ):
     """
     Get a configured LLM client based on model specification.
-    
+
     Args:
         model_env: Environment variable name containing the model specification
         model_string: Direct model specification string
         streaming: Whether to enable streaming responses
-        
+
     Returns:
         Tuple of (llm_client, provider_name)
-        
+
     Raises:
         ValueError: If model specification is invalid or provider is unsupported
-        
+
     Model specification format:
         - "provider:model_name" or "provider:model_name:reasoning"
         - Examples: "openai:gpt-5.1:none", "azure:gpt-5-chat"
@@ -60,7 +60,6 @@ def get_llm(
         "output_version": "responses/v1",
         "streaming": streaming,
         "model": model_name,
-        "use_responses_api": True,
     }
     if reasoning_effort is not None:
         params["reasoning"] = {"effort": reasoning_effort, "summary": "auto"}
@@ -80,12 +79,18 @@ def get_llm(
             return llm, provider
 
         case "groq":
-            del params["use_responses_api"]
             llm = ChatGroq(**params)
 
             return llm, provider
+        case "mistralai":
+            llm = ChatMistralAI(**params)
+
+            return llm, provider
+        case "google":
+            llm = ChatGoogleGenerativeAI(
+                **params,
+            )
+            return llm, provider
 
         case _:
-            raise ValueError(
-                f"Unsupported provider: {provider}, supported: 'openai', 'azure'"
-            )
+            raise ValueError(f"Unsupported provider: {provider}, supported: 'openai', 'azure'")

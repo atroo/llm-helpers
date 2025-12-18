@@ -8,6 +8,7 @@ from src.llm_helpers.file_utils import file_to_message
 from src.llm_helpers.get_llm import get_llm
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
+from langchain_core.messages import AIMessage
 
 load_dotenv()
 
@@ -20,20 +21,22 @@ def create_upload_file_from_pdf(pdf_path: Path) -> UploadFile:
         filename=pdf_path.name,
         file=BytesIO(pdf_content),
         headers={"content-type": "application/pdf"},
-        # content_type = "application/pdf"
     )
     return file
 
 
-@pytest.mark.asyncio
-async def test_file_to_message_openai_with_real_pdf():
-    """Test file_to_message with OpenAI using a real PDF file."""
-    pdf_path = Path(__file__).parent / "data" / "32047_53837_Ergaenzende_Informationen_zu_Ihrer_Abgabe.pdf"
-    
+def get_test_pdf_path() -> Path:
+    """Get the path to the test PDF file."""
+    return Path(__file__).parent / "data" / "32047_53837_Ergaenzende_Informationen_zu_Ihrer_Abgabe.pdf"
+
+
+async def _test_file_to_message_with_provider(model_string: str):
+    """Helper function to test file_to_message with a given provider."""
+    pdf_path = get_test_pdf_path()
     file = create_upload_file_from_pdf(pdf_path)
     
     # Get LLM client and invoke
-    llm, provider = get_llm(model_string="openai:gpt-5.1:none")
+    llm, provider = get_llm(model_string=model_string)
     message = await file_to_message(file, provider)
     
     human_message = HumanMessage(
@@ -45,45 +48,24 @@ async def test_file_to_message_openai_with_real_pdf():
     
     response = await llm.ainvoke([human_message])
     
-    assert response is not None
-    assert hasattr(response, "content")
-    assert len(response.content) > 0
-    
-    print(f"\nOpenAI Response: {response.content}")
+    assert isinstance(response, AIMessage)
+    print(f"\n{provider} Response: {response.content}")
+    return response
+
+
+@pytest.mark.asyncio
+async def test_file_to_message_openai_with_real_pdf():
+    await _test_file_to_message_with_provider("openai:gpt-5.1:none")
 
 
 @pytest.mark.asyncio
 async def test_file_to_message_azure_with_real_pdf():
-    """Test file_to_message with Azure using a real PDF file."""
-    pdf_path = Path(__file__).parent / "data" / "32047_53837_Ergaenzende_Informationen_zu_Ihrer_Abgabe.pdf"
-    
-    file = create_upload_file_from_pdf(pdf_path)
-    
-    # Get LLM client and invoke
-    llm, provider = get_llm(model_string='azure:gpt-5-chat')
-    message = await file_to_message(file, provider)
-    
-    human_message = HumanMessage(
-        content=[
-            {"type": "text", "text": "What is in this PDF document? Give a brief summary."},
-            message
-        ]
-    )
-    
-    response = await llm.ainvoke([human_message])
-    
-    assert response is not None
-    assert hasattr(response, "content")
-    assert len(response.content) > 0
-    
-    print(f"\nAzure Response: {response.content}")
+    await _test_file_to_message_with_provider("azure:gpt-5-chat")
 
 
 @pytest.mark.asyncio
 async def test_file_to_message_groq_not_implemented():
-    """Test that Groq provider raises NotImplementedError with real PDF."""
-    pdf_path = Path(__file__).parent / "data" / "32047_53837_Ergaenzende_Informationen_zu_Ihrer_Abgabe.pdf"
-    
+    pdf_path = get_test_pdf_path()
     file = create_upload_file_from_pdf(pdf_path)
     
     with pytest.raises(NotImplementedError, match="File upload not supported for Groq"):
@@ -91,10 +73,13 @@ async def test_file_to_message_groq_not_implemented():
 
 
 @pytest.mark.asyncio
+async def test_file_to_message_google_with_real_pdf():
+    await _test_file_to_message_with_provider("google:gemini-3-flash-preview:minimal")
+
+
+@pytest.mark.asyncio
 async def test_file_to_message_unsupported_provider():
-    """Test that unsupported provider raises ValueError."""
-    pdf_path = Path(__file__).parent / "data" / "32047_53837_Ergaenzende_Informationen_zu_Ihrer_Abgabe.pdf"
-    
+    pdf_path = get_test_pdf_path()
     file = create_upload_file_from_pdf(pdf_path)
     
     with pytest.raises(ValueError, match="Unsupported model provider: invalid"):

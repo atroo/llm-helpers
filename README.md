@@ -25,7 +25,7 @@ pip install -e .
 
 ### Install the library
 
-- currently only via ssh: `poetry add git+ssh://git@github.com/atroo/llm-helpers.git`
+- `poetry add http://git@github.com/atroo/llm-helpers.git`
 
 ## Usage
 
@@ -63,6 +63,10 @@ poetry install --with dev
 
 ```bash
 poetry run pytest
+```
+
+```bash
+poetry run pytest -k test_get_llm_google
 ```
 
 ### Code formatting
