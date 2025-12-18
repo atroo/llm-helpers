@@ -5,15 +5,16 @@ from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
-
-MODEL_PROVIDERS = ["openai", "azure", "groq", "mistralai", "google"]
-
+from .const import MODEL_PROVIDERS
+from langchain_core.language_models import BaseChatModel
+from pydantic import SecretStr
+from .parse_model_string import parse_model_string
 
 def get_llm(
     model_env: str | None = None,
     model_string: str | None = None,
     streaming: bool = True,
-):
+) -> tuple[BaseChatModel, MODEL_PROVIDERS]:
     """
     Get a configured LLM client based on model specification.
 
@@ -32,29 +33,8 @@ def get_llm(
         - "provider:model_name" or "provider:model_name:reasoning"
         - Examples: "openai:gpt-5.1:none", "azure:gpt-5-chat"
     """
-    if model_string is not None:
-        model_name = model_string
-    elif model_env is not None:
-        model_name = os.getenv(model_env, "openai:gpt-5.1:none")
-    else:
-        model_name = "openai:gpt-5.1:none"
 
-    if len(model_name.split(":")) == 2:
-        provider, model_name = model_name.split(":")
-        reasoning_effort = None
-    elif len(model_name.split(":")) == 3:
-        provider, model_name, reasoning_effort = model_name.split(":")
-    else:
-        raise ValueError(
-            f"Model name {model_name} is not valid. It must be in the format 'provider:model_name[:reasoning]', e.g., 'openai:gpt-5.1:none' e.g. 'azure:gpt-5-chat'."
-        )
-
-    if provider not in MODEL_PROVIDERS:
-        raise ValueError(
-            f"Provider {provider} is not supported. Supported providers are: {MODEL_PROVIDERS}"
-        )
-
-    print(f"{model_env}: Using LLM model: {model_name} from provider: {provider}")
+    provider, model_name, reasoning_effort = parse_model_string(model_env, model_string)
 
     params = {
         "output_version": "responses/v1",
@@ -66,12 +46,15 @@ def get_llm(
 
     match provider:
         case "azure":
+            base_url = os.environ["AZURE_BASE_URL"]
+            api_key = os.environ["AZURE_OPENAI_API_KEY"]
+            
             llm = ChatOpenAI(
-                base_url=os.environ["AZURE_BASE_URL"],
-                api_key=os.environ["AZURE_OPENAI_API_KEY"],
+                base_url=base_url,
+                api_key=SecretStr(api_key),
                 **params,
             )
-            return llm, provider
+            return llm, provider   
 
         case "openai":
             llm = ChatOpenAI(**params)

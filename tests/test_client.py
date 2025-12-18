@@ -4,16 +4,11 @@ import pytest
 from langchain_core.messages import HumanMessage, AIMessage
 from src.llm_helpers.get_llm import get_llm
 from dotenv import load_dotenv
+from src.llm_helpers.const import DEFAULT_MODEL_STRINGS
 
 load_dotenv()
 
-TEST_MODEL_STRINGS = {
-    "openai": "openai:gpt-5.1:none",
-    "azure": "azure:gpt-5-chat",
-    "groq": "groq:openai/gpt-oss-120b",
-    "mistralai": "mistralai:mistral-large-latest",
-    "google": "google:gemini-3-flash-preview:minimal"
-}
+
 
 def has_reasoning(response: AIMessage) -> bool:
     """Check if the response contains reasoning."""
@@ -35,7 +30,7 @@ async def run_basic_llm_test(provider_name: str, should_have_reasoning: bool = F
     """
     Helper function to test basic LLM functionality for a given provider.
     """
-    llm, provider = get_llm(model_string=TEST_MODEL_STRINGS[provider_name])
+    llm, provider = get_llm(model_string=DEFAULT_MODEL_STRINGS[provider_name])
     
     assert provider == provider_name
     assert llm is not None
@@ -106,7 +101,7 @@ async def test_get_llm_from_env():
     import os
     
     # Set environment variable
-    os.environ["TEST_MODEL"] = TEST_MODEL_STRINGS["openai"]
+    os.environ["TEST_MODEL"] = DEFAULT_MODEL_STRINGS["openai"]
     
     llm, provider = get_llm(model_env="TEST_MODEL")
     
