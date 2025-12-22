@@ -42,7 +42,7 @@ def get_llm(
         "model": model_name,
     }
     if reasoning_effort is not None:
-        params["reasoning"] = {"effort": reasoning_effort, "summary": "auto"}
+        params["reasoning"] = {"effort": reasoning_effort}
 
     match provider:
         case "azure":
